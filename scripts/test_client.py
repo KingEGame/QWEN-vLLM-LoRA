@@ -27,9 +27,17 @@ def main() -> int:
     parser.add_argument("--prompt", default="What can you help me with?", help="Prompt to send")
     args = parser.parse_args()
 
-    config = load_env_file(REPO_ROOT / "config" / "model.env")
+    config_path = REPO_ROOT / "config" / "model.env"
+    if not config_path.exists():
+        print(f"Error: {config_path} not found. Did you run scripts/setup.sh?", file=sys.stderr)
+        return 1
+
+    config = load_env_file(config_path)
     port = config.get("PORT", "8000")
-    model = args.model or config["MODEL"]
+    model = args.model or config.get("MODEL")
+    if not model:
+        print(f"Error: MODEL not set in {config_path} (and no --model flag given)", file=sys.stderr)
+        return 1
 
     client = OpenAI(base_url=f"http://localhost:{port}/v1", api_key="not-needed")
 
