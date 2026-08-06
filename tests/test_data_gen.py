@@ -34,3 +34,19 @@ def test_parse_generated_response_returns_empty_list_for_non_array():
     pairs = parse_generated_response('{"instruction": "Q1", "response": "A1"}')
 
     assert pairs == []
+
+
+def test_parse_generated_response_handles_markdown_fence():
+    response = '```json\n[{"instruction": "Q1", "response": "A1"}]\n```'
+
+    pairs = parse_generated_response(response)
+
+    assert pairs == [{"instruction": "Q1", "response": "A1"}]
+
+
+def test_parse_generated_response_handles_leading_commentary():
+    response = 'Here is the JSON:\n[{"instruction": "Q1", "response": "A1"}]'
+
+    pairs = parse_generated_response(response)
+
+    assert pairs == [{"instruction": "Q1", "response": "A1"}]
