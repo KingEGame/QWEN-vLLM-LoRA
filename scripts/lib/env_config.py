@@ -3,11 +3,14 @@ from pathlib import Path
 
 
 def load_env_file(path: Path) -> dict[str, str]:
-    """Parse a bash-sourceable KEY=VALUE file into a dict.
+    """Parse a KEY=VALUE config file into a dict.
 
-    Skips blank lines and lines starting with '#'. Strips matching
-    single or double quotes from values, matching bash's own behavior
-    when scripts `source` this same file.
+    Supports plain `KEY=VALUE`, `KEY="VALUE"`, and `KEY='VALUE'` lines,
+    plus blank lines and full-line '#' comments. Does NOT support bash
+    features like `export KEY=VALUE` or trailing inline '# comment'
+    text after a value -- config/*.env files in this project should
+    stick to the plain KEY=VALUE form so bash `source` and this loader
+    stay in agreement.
     """
     result: dict[str, str] = {}
     for raw_line in Path(path).read_text(encoding="utf-8").splitlines():
