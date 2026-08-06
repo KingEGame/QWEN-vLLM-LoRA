@@ -32,7 +32,6 @@ LEARNING_RATE = 2e-4
 
 
 def main() -> int:
-    # Fail fast on data problems before paying the cost of importing torch/unsloth.
     if not TRAIN_DATA_PATH.exists():
         print(f"ERROR: {TRAIN_DATA_PATH} not found. Create it first (see docs/how-it-works.md).", file=sys.stderr)
         return 1
