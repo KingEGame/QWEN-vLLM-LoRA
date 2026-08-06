@@ -13,7 +13,7 @@ fi
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 
 echo "== Creating virtual environment at $VENV_DIR =="
-python3 -m venv "$VENV_DIR"
+python3 -m venv --clear "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
 
 echo "== Installing dependencies =="
