@@ -76,11 +76,11 @@ def main() -> int:
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=dataset,
-        dataset_text_field="text",
-        max_seq_length=MAX_SEQ_LENGTH,
         args=SFTConfig(
+            dataset_text_field="text",
+            max_length=MAX_SEQ_LENGTH,
             per_device_train_batch_size=BATCH_SIZE,
             gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
             num_train_epochs=NUM_EPOCHS,
@@ -88,6 +88,7 @@ def main() -> int:
             output_dir=str(OUTPUT_DIR / "checkpoints"),
             logging_steps=1,
             save_strategy="no",
+            report_to="none",
         ),
     )
 
