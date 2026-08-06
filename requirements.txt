@@ -1,0 +1,9 @@
+vllm>=0.11.0
+unsloth
+trl>=0.12.0
+datasets
+peft
+transformers>=4.51.0
+accelerate
+bitsandbytes
+openai
