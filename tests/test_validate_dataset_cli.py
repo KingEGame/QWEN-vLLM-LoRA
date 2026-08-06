@@ -43,3 +43,30 @@ def test_cli_exits_two_for_missing_file(tmp_path: Path):
     )
 
     assert result.returncode == 2
+
+
+def test_cli_exits_two_for_non_utf8_file(tmp_path: Path):
+    dataset = tmp_path / "train.jsonl"
+    dataset.write_bytes(b"\xff\xfe not valid utf-8")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), str(dataset)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_cli_exits_one_for_empty_file(tmp_path: Path):
+    dataset = tmp_path / "train.jsonl"
+    dataset.write_text("")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), str(dataset)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "FAILED" in result.stdout

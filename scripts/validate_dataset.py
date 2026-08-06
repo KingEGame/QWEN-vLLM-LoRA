@@ -21,7 +21,12 @@ def main() -> int:
         print(f"Error: {dataset_path} does not exist", file=sys.stderr)
         return 2
 
-    errors = validate_dataset_file(dataset_path)
+    try:
+        errors = validate_dataset_file(dataset_path)
+    except UnicodeDecodeError as exc:
+        print(f"Error: {dataset_path} is not valid UTF-8 text: {exc}", file=sys.stderr)
+        return 2
+
     if errors:
         print(f"FAILED: {len(errors)} invalid line(s) in {dataset_path}")
         for error in errors:
@@ -29,6 +34,10 @@ def main() -> int:
         return 1
 
     line_count = sum(1 for line in dataset_path.read_text(encoding="utf-8").splitlines() if line.strip())
+    if line_count == 0:
+        print(f"FAILED: {dataset_path} contains no training examples (file is empty or all blank lines)")
+        return 1
+
     print(f"OK: {dataset_path} is valid ({line_count} training examples)")
     return 0
 
