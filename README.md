@@ -49,6 +49,9 @@ Tune model/port/context in `config/model.env` — setup does not rewrite it.
 
 ## Unit tests (no GPU required)
 
+`pytest` is not installed by `setup.sh`; install it into the venv first:
+
 ```bash
+pip install pytest
 python -m pytest -v
 ```

@@ -19,7 +19,7 @@ if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: python3 not found. On Ubuntu/Debian: sudo apt-get install -y python3 python3-venv python3-pip" >&2
     exit 1
 fi
-if ! python3 -c "import venv" >/dev/null 2>&1; then
+if ! python3 -c "import ensurepip" >/dev/null 2>&1; then
     echo "ERROR: Python venv module missing. On Ubuntu/Debian: sudo apt-get install -y python3-venv" >&2
     exit 1
 fi
