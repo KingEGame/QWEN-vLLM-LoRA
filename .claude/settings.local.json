@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"E:/Projects/QWEN+vLLM+LoRA/docs/superpowers/specs\" && ls \"E:/Projects/QWEN+vLLM+LoRA\")"
+    ]
+  }
+}
