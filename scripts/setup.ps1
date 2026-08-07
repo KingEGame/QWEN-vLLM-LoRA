@@ -1,7 +1,8 @@
 #Requires -Version 5.1
 $ErrorActionPreference = "Stop"
+$env:WSL_UTF8 = "1"
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptDir = $PSScriptRoot
 $RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 
 function Get-UbuntuDistroName {
@@ -17,8 +18,8 @@ function Get-UbuntuDistroName {
 }
 
 if (-not (Get-Command wsl -ErrorAction SilentlyContinue)) {
-    Write-Error @"
-wsl.exe not found. Install WSL2 first:
+    Write-Host @"
+ERROR: wsl.exe not found. Install WSL2 first:
   wsl --install -d Ubuntu
 Then reboot and re-run scripts\setup.ps1
 "@
@@ -27,16 +28,24 @@ Then reboot and re-run scripts\setup.ps1
 
 $distro = Get-UbuntuDistroName
 if (-not $distro) {
-    Write-Error @"
-No Ubuntu WSL distro found. Install one with:
+    Write-Host @"
+ERROR: No Ubuntu WSL distro found. Install one with:
   wsl --install -d Ubuntu
 "@
     exit 1
 }
 
-$wslRepo = (wsl -d $distro -e wslpath -a $RepoRoot).Trim()
+$wslRepo = (wsl -d $distro -e wslpath -a $RepoRoot | Out-String).Trim()
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: wslpath failed (exit $LASTEXITCODE) converting repo path: $RepoRoot"
+    exit 1
+}
 if (-not $wslRepo) {
-    Write-Error "Failed to convert repo path to a WSL path: $RepoRoot"
+    Write-Host "ERROR: Failed to convert repo path to a WSL path: $RepoRoot"
+    exit 1
+}
+if (-not $wslRepo.StartsWith("/")) {
+    Write-Host "ERROR: Unexpected wslpath output (expected a path starting with /): $wslRepo"
     exit 1
 }
 
