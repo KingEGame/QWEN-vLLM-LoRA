@@ -45,20 +45,33 @@ python scripts/test_client.py
 
 - `MODEL=shawnw3i/Qwen3.6-27B-AWQ-MTP`
 - `QUANTIZATION=awq`
-- `MAX_MODEL_LEN=8192`
+- `MAX_MODEL_LEN=4096`
+- `MAX_NUM_SEQS=32`
+- `GPU_MEM_UTIL=0.92`
 - `REASONING_PARSER=qwen3`
 - `LANGUAGE_MODEL_ONLY=1`
 
 First server start downloads the AWQ weights from Hugging Face (large).
 
-If you OOM: lower `MAX_MODEL_LEN` (e.g. `4096`) or `GPU_MEM_UTIL` (e.g. `0.85`).
-If VRAM remains, try raising `MAX_MODEL_LEN` toward `16384`.
+On WSL, `scripts/start_server.sh` sources `scripts/wsl_runtime_env.sh` for a
+user-space GCC/CUDA toolkit (micromamba env `cc`) needed by Triton on
+Blackwell GPUs. Create it once if missing:
+
+```bash
+# one-time: user-space gcc + CUDA 13.x (no sudo)
+bash scripts/_install_usergcc.sh   # or recreate micromamba env `cc` with cuda-nvcc
+```
+
+If you OOM or hit Mamba-cache errors: lower `MAX_MODEL_LEN` / `MAX_NUM_SEQS`,
+or raise `GPU_MEM_UTIL` slightly. If VRAM remains, try raising `MAX_MODEL_LEN`
+toward `8192`.
 
 To roll back to the small bf16 model for LoRA experiments, set in `config/model.env`:
 
 ```env
 MODEL=Qwen/Qwen3-4B-Instruct-2507
 MAX_MODEL_LEN=32768
+MAX_NUM_SEQS=
 QUANTIZATION=none
 REASONING_PARSER=
 LANGUAGE_MODEL_ONLY=0
