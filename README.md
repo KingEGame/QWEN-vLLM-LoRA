@@ -85,6 +85,34 @@ REASONING_PARSER=
 LANGUAGE_MODEL_ONLY=0
 ```
 
+## LoRA on Qwen3.6-27B (example FAQ)
+
+End-to-end generate → train → serve-with-LoRA using `data/source_docs/example_faq.md`.
+Generation uses the running AWQ server; training loads dense `Qwen/Qwen3.6-27B` in 4-bit
+(QLoRA cannot train on the AWQ checkpoint).
+
+```bash
+# 1) server already running with AWQ 27B
+python scripts/generate_training_data.py
+
+# 2) first-run promote (light review optional)
+mkdir -p data
+cp data/generated/raw_qa.jsonl data/train.jsonl
+python scripts/validate_dataset.py data/train.jsonl
+
+# 3) stop the vLLM server (Ctrl+C in its terminal), confirm VRAM free:
+nvidia-smi
+
+# 4) train (downloads dense Qwen/Qwen3.6-27B on first run — large)
+TRAIN_MODEL=Qwen/Qwen3.6-27B MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1 \
+  python scripts/train_lora.py
+
+# 5) serve base + adapter
+./scripts/serve_with_lora.sh
+# other terminal:
+python scripts/test_client.py --model support-adapter
+```
+
 ## Troubleshooting
 
 Driver, CUDA, and out-of-memory issues are documented in:
@@ -92,6 +120,7 @@ Driver, CUDA, and out-of-memory issues are documented in:
 - [Design: Qwen + vLLM + LoRA setup](docs/superpowers/specs/2026-08-06-qwen-vllm-lora-setup-design.md)
 - [Design: easy onboard setup scripts](docs/superpowers/specs/2026-08-06-easy-onboard-setup-scripts-design.md)
 - [Design: Qwen3.6-27B AWQ serve](docs/superpowers/specs/2026-08-08-qwen36-27b-awq-serve-design.md)
+- [Design: Qwen3.6-27B LoRA train](docs/superpowers/specs/2026-08-08-qwen36-27b-lora-train-design.md)
 
 Tune model/port/context in `config/model.env` — setup does not rewrite it.
 
