@@ -29,6 +29,12 @@ if [ -n "${MAX_NUM_SEQS:-}" ]; then
     MAX_SEQS_FLAG=(--max-num-seqs "$MAX_NUM_SEQS")
 fi
 
+EXTRA_FLAGS=()
+if [ -n "${EXTRA_ARGS:-}" ]; then
+    # shellcheck disable=SC2206
+    EXTRA_FLAGS=($EXTRA_ARGS)
+fi
+
 echo "Starting vLLM server: model=$MODEL port=$PORT max_model_len=$MAX_MODEL_LEN max_num_seqs=${MAX_NUM_SEQS:-default} quantization=${QUANTIZATION:-none} reasoning_parser=${REASONING_PARSER:-none} language_model_only=${LANGUAGE_MODEL_ONLY:-0}"
 
 vllm serve "$MODEL" \
@@ -38,4 +44,5 @@ vllm serve "$MODEL" \
     "${QUANT_FLAG[@]}" \
     "${REASONING_FLAG[@]}" \
     "${LM_ONLY_FLAG[@]}" \
-    "${MAX_SEQS_FLAG[@]}"
+    "${MAX_SEQS_FLAG[@]}" \
+    "${EXTRA_FLAGS[@]}"

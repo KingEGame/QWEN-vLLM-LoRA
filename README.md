@@ -54,13 +54,21 @@ python scripts/test_client.py
 First server start downloads the AWQ weights from Hugging Face (large).
 
 On WSL, `scripts/start_server.sh` sources `scripts/wsl_runtime_env.sh` for a
-user-space GCC/CUDA toolkit (micromamba env `cc`) needed by Triton on
-Blackwell GPUs. Create it once if missing:
+user-space GCC/CUDA toolkit (micromamba env `cc`) needed by Triton/FlashInfer.
+Create it once if missing:
 
 ```bash
-# one-time: user-space gcc + CUDA 13.x (no sudo)
-bash scripts/_install_usergcc.sh   # or recreate micromamba env `cc` with cuda-nvcc
+# one-time: user-space gcc + CUDA 13.3 toolkit (no sudo)
+bash scripts/_install_usergcc.sh
 ```
+
+Blackwell-only env vars (`FLASHINFER_CUDA_ARCH_LIST`, `TORCH_CUDA_ARCH_LIST`)
+are set only when `nvidia-smi` reports compute capability major >= 12.
+`VLLM_USE_FLASHINFER_SAMPLER` defaults to `0` (avoids curand.h JIT); override
+to `1` if you have full CUDA math headers.
+
+Pass extra vLLM flags via `EXTRA_ARGS`, e.g.
+`EXTRA_ARGS="--enforce-eager" ./scripts/start_server.sh`.
 
 If you OOM or hit Mamba-cache errors: lower `MAX_MODEL_LEN` / `MAX_NUM_SEQS`,
 or raise `GPU_MEM_UTIL` slightly. If VRAM remains, try raising `MAX_MODEL_LEN`

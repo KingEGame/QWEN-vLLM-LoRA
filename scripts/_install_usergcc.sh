@@ -15,4 +15,6 @@ chmod +x "$HOME/.local/bin/micromamba"
 "$HOME/.local/bin/micromamba" --version
 export MAMBA_ROOT_PREFIX="$HOME/micromamba"
 "$HOME/.local/bin/micromamba" create -y -n cc -c conda-forge cxx-compiler c-compiler
-"$HOME/.local/bin/micromamba" run -n cc bash -lc 'which gcc; gcc --version | head -1'
+"$HOME/.local/bin/micromamba" install -y -n cc -c nvidia -c conda-forge \
+    cuda-nvcc=13.3.73 cuda-cudart-dev cuda-cccl
+"$HOME/.local/bin/micromamba" run -n cc bash -lc 'which gcc; gcc --version | head -1; which nvcc; nvcc --version | head -4'

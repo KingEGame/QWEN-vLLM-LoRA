@@ -13,8 +13,18 @@ if [ -d "$CC_ENV/bin" ]; then
     export LD_LIBRARY_PATH="${CC_ENV}/lib:${CC_ENV}/targets/x86_64-linux/lib:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
 fi
 
-# sm_120 (Blackwell) needs CUDA >= 12.9 for FlashInfer arch normalization
-export FLASHINFER_CUDA_ARCH_LIST="${FLASHINFER_CUDA_ARCH_LIST:-12.0f}"
-export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-12.0}"
-# Skip FlashInfer sampling JIT (needs full CUDA math headers e.g. curand.h)
+# sm_120 (Blackwell) needs CUDA >= 12.9 for FlashInfer arch normalization.
+# Only set arch lists when the GPU reports compute capability major >= 12.
+_compute_cap_major=
+if command -v nvidia-smi >/dev/null 2>&1; then
+    _compute_cap_major="$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1 | cut -d. -f1 | tr -d ' ')"
+fi
+if [ -n "$_compute_cap_major" ] && [ "$_compute_cap_major" -ge 12 ] 2>/dev/null; then
+    export FLASHINFER_CUDA_ARCH_LIST="${FLASHINFER_CUDA_ARCH_LIST:-12.0f}"
+    export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-12.0}"
+fi
+unset _compute_cap_major
+
+# Skip FlashInfer sampling JIT by default (needs full CUDA math headers e.g. curand.h).
+# Operators with complete CUDA dev headers can override: VLLM_USE_FLASHINFER_SAMPLER=1
 export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
