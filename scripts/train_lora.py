@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fine-tune a LoRA adapter for Qwen3-4B on customer-support Q&A data.
+"""Fine-tune a LoRA adapter for Qwen3 / Qwen3.6-27B on customer-support Q&A data.
 
 Uses 4-bit QLoRA via transformers + PEFT + bitsandbytes + TRL, sized for
 consumer GPUs. Reads data/train.jsonl (validate first with
@@ -9,8 +9,12 @@ output/lora_adapter/.
 Usage:
   python scripts/train_lora.py
 
-On 6GB cards / when serving uses an AWQ checkpoint:
-  TRAIN_MODEL=Qwen/Qwen3-4B-Instruct-2507 MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 \\
+Serving may use an AWQ checkpoint while training needs the dense base. Set
+TRAIN_MODEL in config/model.env or the environment (e.g.
+TRAIN_MODEL=Qwen/Qwen3.6-27B for 27B QLoRA).
+
+On 6GB cards / tight VRAM (especially 27B):
+  TRAIN_MODEL=Qwen/Qwen3.6-27B MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1 \\
     python scripts/train_lora.py
 """
 import os
@@ -57,6 +61,11 @@ def main() -> int:
     base_model = os.environ.get("TRAIN_MODEL") or config.get("TRAIN_MODEL") or config["MODEL"]
     print(f"Training LoRA on base model: {base_model}")
     print(f"Examples: {TRAIN_DATA_PATH} | seq={MAX_SEQ_LENGTH} batch={BATCH_SIZE} epochs={NUM_EPOCHS}")
+    if "27B" in base_model.upper():
+        print(
+            "NOTE: Stop the vLLM server before training to free VRAM. "
+            "Recommended: MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1"
+        )
 
     import torch
     from datasets import load_dataset
@@ -86,12 +95,24 @@ def main() -> int:
         trust_remote_code=True,
     )
     model = prepare_model_for_kbit_training(model)
+    target_modules = list(LORA_TARGET_MODULES)
+    named = {n.split(".")[-1] for n, _ in model.named_modules()}
+    if not any(t in named for t in target_modules):
+        target_modules = sorted(
+            {
+                name.split(".")[-1]
+                for name, module in model.named_modules()
+                if isinstance(module, torch.nn.Linear)
+                and name.split(".")[-1] not in {"lm_head"}
+            }
+        )
+        print(f"WARNING: default LoRA targets missing; using Linear modules: {target_modules}")
     model = get_peft_model(
         model,
         LoraConfig(
             r=LORA_RANK,
             lora_alpha=LORA_ALPHA,
-            target_modules=LORA_TARGET_MODULES,
+            target_modules=target_modules,
             lora_dropout=0.0,
             bias="none",
             task_type="CAUSAL_LM",
