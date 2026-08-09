@@ -108,7 +108,8 @@ def main() -> int:
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         quantization_config=bnb_config,
-        device_map="auto",
+        # Single-GPU QLoRA: keep the whole 4-bit model on cuda:0 (avoid CPU offload rejection).
+        device_map={"": 0},
         trust_remote_code=True,
     )
     model = prepare_model_for_kbit_training(model)
