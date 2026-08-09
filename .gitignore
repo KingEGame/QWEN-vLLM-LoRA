@@ -6,3 +6,7 @@ output/
 data/generated/*
 !data/generated/.gitkeep
 data/train.jsonl
+
+# Personal pipeline datasets (may contain private chat text)
+data/personal/**/*.jsonl
+!data/personal/candidates/.gitkeep
