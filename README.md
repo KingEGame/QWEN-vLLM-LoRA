@@ -1,8 +1,8 @@
 # Qwen3.6-27B (AWQ) + vLLM + LoRA
 
 Serve **Qwen3.6-27B** via vLLM (AWQ 4-bit for single-GPU 24GB cards), then
-optionally customize a smaller base model with a LoRA adapter trained on your
-own docs. LoRA fine-tuning of the 27B checkpoint is not in this path yet.
+optionally train LoRA adapters with QLoRA on dense `Qwen/Qwen3.6-27B` and serve
+them on the AWQ base (FAQ loop or personal sharper → assistant pipeline).
 
 Authored to run on **Linux or WSL2** with an NVIDIA GPU. Native Windows cannot
 run the GPU stack; Windows teammates use the thin setup wrappers below, which
