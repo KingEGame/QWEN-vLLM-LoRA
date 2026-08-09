@@ -6,6 +6,7 @@ from scripts.lib.personal_extract import (
     iter_transcript_qa_pairs,
     iter_transcript_user_texts,
     pairs_from_markdown,
+    sharpen_candidates_from_texts,
 )
 
 
@@ -53,3 +54,16 @@ def test_pairs_from_markdown_heading_chunks():
     assert len(pairs) >= 1
     assert all(p["kind"] == "me_assistant" for p in pairs)
     assert all(p["instruction"] and p["response"] for p in pairs)
+
+
+def test_sharpen_skips_short_texts():
+    out = sharpen_candidates_from_texts(["oom", "fix vram please now"], source="t.jsonl")
+    assert out == []
+
+
+def test_sharpen_skips_trivial_single_token():
+    out = sharpen_candidates_from_texts(["how do i fix oom on 24gb vram card"], source="t.jsonl")
+    assert len(out) == 1
+    assert out[0]["instruction"].startswith("how do i fix oom")
+    assert out[0]["response"]
+

@@ -25,11 +25,16 @@ def _expand(p: str) -> Path:
     return Path(os.path.expanduser(p)).expanduser()
 
 
+def _transcripts_root(raw: str) -> Path | None:
+    if not (raw or "").strip():
+        return None
+    return _expand(raw)
+
+
 def main() -> int:
     cfg = load_env_file(REPO_ROOT / "config" / "personal_sources.env")
-    transcripts = _expand(
-        os.environ.get("AGENT_TRANSCRIPTS_DIR") or cfg.get("AGENT_TRANSCRIPTS_DIR", "")
-    )
+    transcripts_raw = os.environ.get("AGENT_TRANSCRIPTS_DIR") or cfg.get("AGENT_TRANSCRIPTS_DIR", "")
+    transcripts = _transcripts_root(transcripts_raw)
     globs = (
         os.environ.get("MARKDOWN_GLOBS") or cfg.get("MARKDOWN_GLOBS", "README.md")
     ).split(",")
@@ -37,7 +42,7 @@ def main() -> int:
     sharpen: list[dict] = []
     me: list[dict] = []
 
-    if transcripts.is_dir():
+    if transcripts is not None and transcripts.is_dir():
         for path in sorted(transcripts.rglob("*.jsonl")):
             src = str(path)
             sharpen.extend(sharpen_candidates_from_texts(iter_transcript_user_texts(path), src))
@@ -50,8 +55,13 @@ def main() -> int:
                         "kind": "me_assistant",
                     }
                 )
-    else:
+    elif transcripts is not None:
         print(f"WARNING: transcripts dir missing: {transcripts}", file=sys.stderr)
+    else:
+        print(
+            "WARNING: AGENT_TRANSCRIPTS_DIR not set or empty; skipping transcript extraction",
+            file=sys.stderr,
+        )
 
     for pattern in globs:
         pattern = pattern.strip()

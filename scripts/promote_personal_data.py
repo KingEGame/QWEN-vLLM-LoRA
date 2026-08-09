@@ -21,8 +21,16 @@ def _strip_meta(path: Path, dest: Path) -> int:
     for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
-        obj = json.loads(line)
-        row = {"instruction": obj["instruction"], "response": obj["response"]}
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError as exc:
+            print(f"ERROR: {path}:{i} invalid JSON: {exc}", file=sys.stderr)
+            raise
+        try:
+            row = {"instruction": obj["instruction"], "response": obj["response"]}
+        except KeyError as exc:
+            print(f"ERROR: {path}:{i} missing field {exc}", file=sys.stderr)
+            raise
         rows.append(row)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + ("\n" if rows else ""), encoding="utf-8")
@@ -49,7 +57,13 @@ def main() -> int:
         if not src.exists():
             print(f"ERROR: missing {src}", file=sys.stderr)
             return 1
-        n = _strip_meta(src, dest)
+        try:
+            n = _strip_meta(src, dest)
+        except (json.JSONDecodeError, KeyError):
+            return 1
+        if n == 0:
+            print(f"ERROR: {src} produced 0 rows after promote", file=sys.stderr)
+            return 1
         errors = validate_dataset_file(dest)
         if errors:
             print(f"ERROR: {dest} invalid:", file=sys.stderr)

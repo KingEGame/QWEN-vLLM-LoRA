@@ -37,8 +37,13 @@ LORA_RANK = 16
 LORA_ALPHA = 16
 LORA_TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "2"))
-GRADIENT_ACCUMULATION_STEPS = 4
+GRADIENT_ACCUMULATION_STEPS = int(os.environ.get("GRADIENT_ACCUMULATION_STEPS", "4"))
 NUM_EPOCHS = int(os.environ.get("NUM_EPOCHS", "3"))
+GRADIENT_CHECKPOINTING = os.environ.get("GRADIENT_CHECKPOINTING", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
 LEARNING_RATE = 2e-4
 
 
@@ -165,7 +170,7 @@ def main() -> int:
             save_strategy="no",
             report_to="none",
             bf16=True,
-            gradient_checkpointing=True,
+            gradient_checkpointing=GRADIENT_CHECKPOINTING,
         ),
     )
 

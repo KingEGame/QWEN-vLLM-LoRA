@@ -104,7 +104,10 @@ python scripts/validate_dataset.py data/train.jsonl
 nvidia-smi
 
 # 4) train (downloads dense Qwen/Qwen3.6-27B on first run — large)
-# Knobs live in config/model.env (batch=2, epochs=3, accum=8, ~70% free GPU/CPU).
+# Train knobs via env (defaults in train_lora.py): MAX_SEQ_LENGTH, BATCH_SIZE,
+# NUM_EPOCHS, GRADIENT_ACCUMULATION_STEPS, GRADIENT_CHECKPOINTING.
+# Example 27B smoke: MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1 \
+#   GRADIENT_ACCUMULATION_STEPS=8 GRADIENT_CHECKPOINTING=1 python scripts/train_lora.py
 python scripts/train_lora.py
 
 # 5) serve base + adapter
@@ -139,6 +142,7 @@ python scripts/validate_dataset.py data/personal/question_sharp.jsonl
 python scripts/validate_dataset.py data/personal/me_assistant.jsonl
 
 # 3) stop vLLM; confirm VRAM free (nvidia-smi), then train each adapter
+# Same train env knobs as above (MAX_SEQ_LENGTH, BATCH_SIZE, NUM_EPOCHS, etc.).
 python scripts/train_lora.py --data data/personal/question_sharp.jsonl --output output/lora_question_sharper
 python scripts/train_lora.py --data data/personal/me_assistant.jsonl --output output/lora_me_assistant
 
