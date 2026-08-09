@@ -34,3 +34,5 @@ Task 8 (ledger note): plumbing smoke only — extract → promote → train → 
 personal_pipeline chain works end-to-end. Sharper dataset quality and 3-prompt success
 criteria were NOT met; candidates need human review before claiming personalization quality.
 
+Final review: Ready after fix 9ed03e6 (44 tests pass)
+

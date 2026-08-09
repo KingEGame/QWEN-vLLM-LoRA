@@ -9,8 +9,7 @@ All merge-blocker findings addressed. Full pytest suite passes (44 tests).
 
 ## Commits
 
-1. `fix(personal-pipeline): address final review merge blockers` — train env knobs, promote/extract/sharpen fixes, README, tests, ledger
-2. (single commit if squashed locally)
+1. `9ed03e6` — `fix(personal-pipeline): address final review merge blockers`
 
 ## What was fixed
 
