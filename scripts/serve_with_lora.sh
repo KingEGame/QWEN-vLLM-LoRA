@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Multi-LoRA: LORA_MODULES="question-sharper=output/lora_question_sharper,me-assistant=output/lora_me_assistant" ./scripts/serve_with_lora.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,13 +36,32 @@ if [ -n "${EXTRA_ARGS:-}" ]; then
     EXTRA_FLAGS=($EXTRA_ARGS)
 fi
 
-ADAPTER_PATH="$REPO_ROOT/output/lora_adapter"
-if [ ! -d "$ADAPTER_PATH" ]; then
-    echo "ERROR: no adapter found at $ADAPTER_PATH. Run scripts/train_lora.py first." >&2
-    exit 1
+LORA_MODULE_ARGS=()
+if [ -n "${LORA_MODULES:-}" ]; then
+    IFS=',' read -r -a _mods <<< "$LORA_MODULES"
+    for spec in "${_mods[@]}"; do
+        spec_trimmed="$(echo "$spec" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        name="${spec_trimmed%%=*}"
+        path="${spec_trimmed#*=}"
+        if [[ "$path" != /* ]]; then
+            path="$REPO_ROOT/$path"
+        fi
+        if [ ! -d "$path" ]; then
+            echo "ERROR: LoRA path missing for $name: $path" >&2
+            exit 1
+        fi
+        LORA_MODULE_ARGS+=("${name}=${path}")
+    done
+else
+    ADAPTER_PATH="$REPO_ROOT/output/lora_adapter"
+    if [ ! -d "$ADAPTER_PATH" ]; then
+        echo "ERROR: no adapter found at $ADAPTER_PATH. Run scripts/train_lora.py first." >&2
+        exit 1
+    fi
+    LORA_MODULE_ARGS+=("${ADAPTER_NAME}=${ADAPTER_PATH}")
 fi
 
-echo "Starting vLLM server with LoRA: model=$MODEL adapter=$ADAPTER_NAME port=$PORT"
+echo "Starting vLLM server with LoRA modules: ${LORA_MODULE_ARGS[*]} port=$PORT"
 
 vllm serve "$MODEL" \
     --port "$PORT" \
@@ -49,7 +69,7 @@ vllm serve "$MODEL" \
     --gpu-memory-utilization "$GPU_MEM_UTIL" \
     --enable-lora \
     --max-lora-rank 16 \
-    --lora-modules "${ADAPTER_NAME}=${ADAPTER_PATH}" \
+    --lora-modules "${LORA_MODULE_ARGS[@]}" \
     "${QUANT_FLAG[@]}" \
     "${REASONING_FLAG[@]}" \
     "${LM_ONLY_FLAG[@]}" \
