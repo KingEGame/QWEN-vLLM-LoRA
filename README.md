@@ -8,6 +8,11 @@ Authored to run on **Linux or WSL2** with an NVIDIA GPU. Native Windows cannot
 run the GPU stack; Windows teammates use the thin setup wrappers below, which
 forward into WSL.
 
+## Guides
+
+- [Architecture learning](docs/guides/architecture-learning.md) — what we built, vLLM vs LoRA vs Qwen, limits
+- [Operator cheatsheet](docs/guides/operator-cheatsheet.md) — commands by scenario
+
 ## Onboarding (setup only)
 
 One command installs the Python venv, dependencies, and verifies CUDA/vLLM.
@@ -160,6 +165,8 @@ text — keep it local unless you explicitly version sanitized data.
 
 Driver, CUDA, and out-of-memory issues are documented in:
 
+- [Architecture learning](docs/guides/architecture-learning.md)
+- [Operator cheatsheet](docs/guides/operator-cheatsheet.md)
 - [Design: Qwen + vLLM + LoRA setup](docs/superpowers/specs/2026-08-06-qwen-vllm-lora-setup-design.md)
 - [Design: easy onboard setup scripts](docs/superpowers/specs/2026-08-06-easy-onboard-setup-scripts-design.md)
 - [Design: Qwen3.6-27B AWQ serve](docs/superpowers/specs/2026-08-08-qwen36-27b-awq-serve-design.md)
