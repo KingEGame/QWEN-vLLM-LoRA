@@ -13,17 +13,10 @@ Serving may use an AWQ checkpoint while training needs the dense base. Set
 TRAIN_MODEL in config/model.env or the environment (e.g.
 TRAIN_MODEL=Qwen/Qwen3.6-27B for 27B QLoRA).
 
-Resource / quality knobs (env overrides config/model.env TRAIN_* keys):
-  MAX_SEQ_LENGTH, BATCH_SIZE, NUM_EPOCHS, GRADIENT_ACCUMULATION_STEPS,
-  DATALOADER_NUM_WORKERS, TRAIN_RESOURCE_FRACTION (default 0.70 of free GPU),
-  GRADIENT_CHECKPOINTING (1/0).
-
-Example (quality-oriented on a free 24GB card):
-  TRAIN_MODEL=Qwen/Qwen3.6-27B MAX_SEQ_LENGTH=1024 BATCH_SIZE=2 NUM_EPOCHS=3 \\
-    GRADIENT_ACCUMULATION_STEPS=8 python scripts/train_lora.py
+On 6GB cards / tight VRAM (especially 27B):
+  TRAIN_MODEL=Qwen/Qwen3.6-27B MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1 \\
+    python scripts/train_lora.py
 """
-from __future__ import annotations
-
 import argparse
 import os
 import sys
@@ -38,20 +31,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TRAIN_DATA_PATH = REPO_ROOT / "data" / "train.jsonl"
 OUTPUT_DIR = REPO_ROOT / "output" / "lora_adapter"
 
+# Sized for 8GB-class GPUs. Override via env on tighter cards.
+MAX_SEQ_LENGTH = int(os.environ.get("MAX_SEQ_LENGTH", "2048"))
 LORA_RANK = 16
 LORA_ALPHA = 16
 LORA_TARGET_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "2"))
+GRADIENT_ACCUMULATION_STEPS = 4
+NUM_EPOCHS = int(os.environ.get("NUM_EPOCHS", "3"))
 LEARNING_RATE = 2e-4
-
-
-def _cfg_get(config: dict[str, str], env_key: str, config_key: str | None = None, default: str = "") -> str:
-    config_key = config_key or env_key
-    return os.environ.get(env_key) or config.get(config_key) or default
-
-
-def _resolve_int(config: dict[str, str], env_key: str, config_key: str, default: int) -> int:
-    raw = _cfg_get(config, env_key, config_key, str(default))
-    return int(raw)
 
 
 def main() -> int:
@@ -88,34 +76,13 @@ def main() -> int:
     # Serving may use an AWQ/compressed checkpoint; QLoRA training needs the
     # dense base instruct model. Override with TRAIN_MODEL when they differ.
     base_model = os.environ.get("TRAIN_MODEL") or config.get("TRAIN_MODEL") or config["MODEL"]
-
-    is_27b = "27B" in base_model.upper()
-    # Quality-oriented defaults for 27B on ~24GB; smaller models keep older defaults.
-    default_seq = 1024 if is_27b else 2048
-    default_batch = 2 if is_27b else 2
-    default_epochs = 3 if is_27b else 3
-    default_accum = 8 if is_27b else 4
-
-    max_seq_length = _resolve_int(config, "MAX_SEQ_LENGTH", "TRAIN_MAX_SEQ_LENGTH", default_seq)
-    batch_size = _resolve_int(config, "BATCH_SIZE", "TRAIN_BATCH_SIZE", default_batch)
-    num_epochs = _resolve_int(config, "NUM_EPOCHS", "TRAIN_NUM_EPOCHS", default_epochs)
-    grad_accum = _resolve_int(
-        config, "GRADIENT_ACCUMULATION_STEPS", "TRAIN_GRAD_ACCUM", default_accum
-    )
-    resource_fraction = float(
-        _cfg_get(config, "TRAIN_RESOURCE_FRACTION", "TRAIN_RESOURCE_FRACTION", "0.70")
-    )
-    grad_ckpt_raw = _cfg_get(config, "GRADIENT_CHECKPOINTING", "TRAIN_GRADIENT_CHECKPOINTING", "0" if is_27b else "1")
-    gradient_checkpointing = grad_ckpt_raw.strip().lower() in {"1", "true", "yes"}
-
     print(f"Training LoRA on base model: {base_model}")
-    print(
-        f"Examples: {train_data} | seq={max_seq_length} batch={batch_size} "
-        f"accum={grad_accum} (effective≈{batch_size * grad_accum}) epochs={num_epochs} "
-        f"grad_ckpt={gradient_checkpointing} resource_fraction={resource_fraction:.2f}"
-    )
-    if is_27b:
-        print("NOTE: Stop the vLLM server before training to free VRAM.")
+    print(f"Examples: {train_data} | seq={MAX_SEQ_LENGTH} batch={BATCH_SIZE} epochs={NUM_EPOCHS}")
+    if "27B" in base_model.upper():
+        print(
+            "NOTE: Stop the vLLM server before training to free VRAM. "
+            "Recommended: MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1"
+        )
 
     import torch
     from datasets import load_dataset
@@ -126,22 +93,6 @@ def main() -> int:
     if not torch.cuda.is_available():
         print("ERROR: CUDA is not available to torch.", file=sys.stderr)
         return 1
-
-    cpu_count = os.cpu_count() or 4
-    default_workers = max(1, int(cpu_count * resource_fraction))
-    dataloader_workers = _resolve_int(
-        config, "DATALOADER_NUM_WORKERS", "TRAIN_DATALOADER_WORKERS", default_workers
-    )
-
-    free_bytes, total_bytes = torch.cuda.mem_get_info()
-    # resource_fraction sizes CPU workers; do NOT pass a tight max_memory into
-    # 4-bit from_pretrained — accelerate will offload layers to CPU and
-    # bitsandbytes rejects that without llm_int8_enable_fp32_cpu_offload.
-    print(
-        f"GPU free={free_bytes // (1024**2)}MiB / total={total_bytes // (1024**2)}MiB; "
-        f"dataloader_workers={dataloader_workers}/{cpu_count} "
-        f"(resource_fraction={resource_fraction:.2f})"
-    )
 
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -154,11 +105,10 @@ def main() -> int:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Single-GPU QLoRA: keep the whole 4-bit model on cuda:0.
     model = AutoModelForCausalLM.from_pretrained(
         base_model,
         quantization_config=bnb_config,
-        device_map={"": 0},
+        device_map="auto",
         trust_remote_code=True,
     )
     model = prepare_model_for_kbit_training(model)
@@ -204,19 +154,17 @@ def main() -> int:
         train_dataset=dataset,
         args=SFTConfig(
             dataset_text_field="text",
-            max_length=max_seq_length,
-            per_device_train_batch_size=batch_size,
-            gradient_accumulation_steps=grad_accum,
-            num_train_epochs=num_epochs,
+            max_length=MAX_SEQ_LENGTH,
+            per_device_train_batch_size=BATCH_SIZE,
+            gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
+            num_train_epochs=NUM_EPOCHS,
             learning_rate=LEARNING_RATE,
             output_dir=str(output_dir / "checkpoints"),
             logging_steps=1,
             save_strategy="no",
             report_to="none",
             bf16=True,
-            gradient_checkpointing=gradient_checkpointing,
-            dataloader_num_workers=dataloader_workers,
-            dataloader_pin_memory=True,
+            gradient_checkpointing=True,
         ),
     )
 
