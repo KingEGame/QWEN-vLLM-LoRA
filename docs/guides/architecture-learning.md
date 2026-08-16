@@ -1,6 +1,7 @@
 # System architecture learning
 
-Companion: [Operator cheatsheet](operator-cheatsheet.md)
+Companions: [Operator cheatsheet](operator-cheatsheet.md) and
+[LoRA, QLoRA, and AWQ learning](lora-qlora-learning.md).
 
 Pre-push learning note for this repo’s Qwen3.6-27B + vLLM + LoRA work (local
 `master` may be ahead of `origin/master`).

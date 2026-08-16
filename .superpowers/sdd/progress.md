@@ -36,3 +36,15 @@ criteria were NOT met; candidates need human review before claiming personalizat
 
 Final review: Ready after fix 9ed03e6 (44 tests pass)
 
+
+# SDD Progress - Learning guides
+Branch: master
+Plan: docs/superpowers/plans/2026-08-08-learning-guides.md
+
+Guides Task 1: complete (dc05aa0..df724b3, review clean)
+
+Guides Task 2: complete (df724b3..95cf6af, review clean)
+
+Guides Task 3: complete (95cf6af..ed39be0, review clean)
+Guides final: Ready after README intro fix
+

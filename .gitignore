@@ -10,3 +10,11 @@ data/train.jsonl
 # Personal pipeline datasets (may contain private chat text)
 data/personal/**/*.jsonl
 !data/personal/candidates/.gitkeep
+
+# Private/generated personal-assistant toolkit artifacts
+data/personal/qwen_dataset_toolkit/personal-assistant-data/raw/*
+data/personal/qwen_dataset_toolkit/personal-assistant-data/prepared/*
+data/personal/qwen_dataset_toolkit/personal-assistant-data/curated/*
+data/personal/qwen_dataset_toolkit/personal-assistant-data/rejected/*
+data/personal/qwen_dataset_toolkit/personal-assistant-data/eval/*
+data/personal/qwen_dataset_toolkit/personal-assistant-data/memory/*

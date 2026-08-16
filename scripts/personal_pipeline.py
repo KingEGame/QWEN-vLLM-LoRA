@@ -24,19 +24,30 @@ def main() -> int:
     parser.add_argument("prompt", help="Messy tech thought / question")
     parser.add_argument("--sharp-model", default="question-sharper")
     parser.add_argument("--answer-model", default="me-assistant")
+    parser.add_argument(
+        "--base-only",
+        action="store_true",
+        help=(
+            "use config/model.env MODEL for both stages and disable Qwen "
+            "thinking; useful until Qwen3.8 personal adapters are trained"
+        ),
+    )
     parser.add_argument("--no-log", action="store_true")
     args = parser.parse_args()
 
     config = load_env_file(REPO_ROOT / "config" / "model.env")
     port = config.get("PORT", "8000")
+    sharp_model = config["MODEL"] if args.base_only else args.sharp_model
+    answer_model = config["MODEL"] if args.base_only else args.answer_model
     client = OpenAI(base_url=f"http://localhost:{port}/v1", api_key="not-needed")
 
     try:
         result = run_pipeline(
             client,
             args.prompt,
-            sharp_model=args.sharp_model,
-            answer_model=args.answer_model,
+            sharp_model=sharp_model,
+            answer_model=answer_model,
+            base_only=args.base_only,
         )
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

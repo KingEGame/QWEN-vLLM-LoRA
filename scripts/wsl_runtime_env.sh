@@ -9,7 +9,7 @@ if [ -d "$CC_ENV/bin" ]; then
     export CXX="${CXX:-$CC_ENV/bin/g++}"
     export CUDA_HOME="${CUDA_HOME:-$CC_ENV}"
     export CPATH="${CC_ENV}/include:${CC_ENV}/targets/x86_64-linux/include:${CPATH:-}"
-    export LIBRARY_PATH="${CC_ENV}/lib:${CC_ENV}/targets/x86_64-linux/lib:${LIBRARY_PATH:-}"
+    export LIBRARY_PATH="${CC_ENV}/lib:${CC_ENV}/targets/x86_64-linux/lib:/usr/lib/wsl/lib:${LIBRARY_PATH:-}"
     export LD_LIBRARY_PATH="${CC_ENV}/lib:${CC_ENV}/targets/x86_64-linux/lib:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
 fi
 
@@ -28,3 +28,8 @@ unset _compute_cap_major
 # Skip FlashInfer sampling JIT by default (needs full CUDA math headers e.g. curand.h).
 # Operators with complete CUDA dev headers can override: VLLM_USE_FLASHINFER_SAMPLER=1
 export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
+
+# Full FP4 GEMM autotuning takes tens of minutes on laptop GPUs. Use
+# FlashInfer's heuristic tactic selection; callers may set an empty value to
+# request exhaustive autotuning.
+export VLLM_FLASHINFER_AUTOTUNE_SKIP_OPS="${VLLM_FLASHINFER_AUTOTUNE_SKIP_OPS:-fp4_gemm}"

@@ -10,6 +10,11 @@ fi
 # shellcheck disable=SC1091
 source "$REPO_ROOT/config/model.env"
 
+# Optional per-runtime overrides (for example the 1.7B personal-agent base).
+MODEL="${MODEL_OVERRIDE:-$MODEL}"
+MAX_MODEL_LEN="${MAX_MODEL_LEN_OVERRIDE:-$MAX_MODEL_LEN}"
+EXTRA_ARGS="${EXTRA_ARGS_OVERRIDE:-${EXTRA_ARGS:-}}"
+
 QUANT_FLAG=()
 if [ "${QUANTIZATION:-none}" != "none" ]; then
     QUANT_FLAG=(--quantization "$QUANTIZATION")

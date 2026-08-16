@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fine-tune a LoRA adapter for Qwen3 / Qwen3.6-27B on customer-support Q&A data.
+"""Fine-tune a LoRA adapter for Qwen3.8-27B on instruction/response data.
 
 Uses 4-bit QLoRA via transformers + PEFT + bitsandbytes + TRL, sized for
 consumer GPUs. Reads data/train.jsonl (validate first with
@@ -9,12 +9,12 @@ output/lora_adapter/.
 Usage:
   python scripts/train_lora.py
 
-Serving may use an AWQ checkpoint while training needs the dense base. Set
+Serving may use an NVFP4 checkpoint while training needs the official base. Set
 TRAIN_MODEL in config/model.env or the environment (e.g.
-TRAIN_MODEL=Qwen/Qwen3.6-27B for 27B QLoRA).
+TRAIN_MODEL=Qwen/Qwen3.8-27B for 27B QLoRA).
 
-On 6GB cards / tight VRAM (especially 27B):
-  TRAIN_MODEL=Qwen/Qwen3.6-27B MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1 \\
+On tight VRAM (especially 27B):
+  TRAIN_MODEL=Qwen/Qwen3.8-27B MAX_SEQ_LENGTH=512 BATCH_SIZE=1 NUM_EPOCHS=1 \\
     python scripts/train_lora.py
 """
 import argparse
@@ -78,15 +78,15 @@ def main() -> int:
         return 1
 
     config = load_env_file(REPO_ROOT / "config" / "model.env")
-    # Serving may use an AWQ/compressed checkpoint; QLoRA training needs the
-    # dense base instruct model. Override with TRAIN_MODEL when they differ.
+    # Serving uses an NVFP4/compressed checkpoint; QLoRA training needs the
+    # official source model. Override with TRAIN_MODEL when they differ.
     base_model = os.environ.get("TRAIN_MODEL") or config.get("TRAIN_MODEL") or config["MODEL"]
     print(f"Training LoRA on base model: {base_model}")
     print(f"Examples: {train_data} | seq={MAX_SEQ_LENGTH} batch={BATCH_SIZE} epochs={NUM_EPOCHS}")
     if "27B" in base_model.upper():
         print(
             "NOTE: Stop the vLLM server before training to free VRAM. "
-            "Recommended: MAX_SEQ_LENGTH=1024 BATCH_SIZE=1 NUM_EPOCHS=1"
+            "Recommended smoke start: MAX_SEQ_LENGTH=512 BATCH_SIZE=1 NUM_EPOCHS=1"
         )
 
     import torch
